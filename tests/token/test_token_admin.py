@@ -1,74 +1,74 @@
-import brownie
-from brownie import ZERO_ADDRESS
+import ape
+from ape.utils import misc
 
 
-def test_admin_set_minter_works(thing, alice):
-    thing.admin_set_minter(alice, {"from": thing.owner()})
-    assert thing.minter() == alice
+def test_admin_set_minter_works(token, alice):
+    token.admin_set_minter(alice, sender = token.owner())
+    assert token.minter() == alice
 
 
-def test_admin_set_owner_works(thing, alice):
-    thing.admin_set_owner(alice, {"from": thing.owner()})
-    assert thing.owner() == alice
+def test_admin_set_owner_works(token, alice):
+    token.admin_set_owner(alice, sender = token.owner())
+    assert token.owner() == alice
 
 
-def test_admin_can_set_nft_addr(thing):
-    thing.admin_set_npc_addr(ZERO_ADDRESS, {"from": thing.owner()})
+def test_admin_can_set_nft_addr(token):
+    token.admin_set_npc_addr(misc.ZERO_ADDRESS, sender = token.owner())
 
 
-def test_owner_can_mint(thing, deployer, alice, bob):
-    assert thing.balanceOf(alice) == 0
+def test_owner_can_mint(token, deployer, alice, bob):
+    assert token.balanceOf(alice) == 0
     # Set unique minter/owner address to test
-    thing.admin_set_owner(bob, {"from": deployer})
-    thing.mint(alice, 10**18, {"from": bob})
-    assert thing.balanceOf(alice) == 10**18
+    token.admin_set_owner(bob, sender = deployer)
+    token.mint(alice, 10**18, sender = bob)
+    assert token.balanceOf(alice) == 10**18
 
 
-def test_minter_can_mint(thing, deployer, alice, bob):
-    assert thing.balanceOf(alice) == 0
+def test_minter_can_mint(token, deployer, alice, bob):
+    assert token.balanceOf(alice) == 0
     # Set unique minter/owner address to test
-    thing.admin_set_minter(bob, {"from": deployer})
-    thing.mint(alice, 10**18, {"from": bob})
-    assert thing.balanceOf(alice) == 10**18
+    token.admin_set_minter(bob, sender = deployer)
+    token.mint(alice, 10**18, sender = bob)
+    assert token.balanceOf(alice) == 10**18
 
 
-def test_rando_cannot_mint(thing, alice, bob):
-    with brownie.reverts():
-        thing.mint(alice, 10**18, {"from": bob})
+def test_rando_cannot_mint(token, alice, bob):
+    with ape.reverts():
+        token.mint(alice, 10**18, sender = bob)
 
 
-def test_rando_cannot_admin_set_owner(thing, charlie):
-    with brownie.reverts():
-        thing.admin_set_owner(charlie, {"from": charlie})
+def test_rando_cannot_admin_set_owner(token, charlie):
+    with ape.reverts():
+        token.admin_set_owner(charlie, sender = charlie)
 
 
-def test_rando_cannot_admin_set_minter(thing, charlie):
-    with brownie.reverts():
-        thing.admin_set_minter(charlie, {"from": charlie})
+def test_rando_cannot_admin_set_minter(token, charlie):
+    with ape.reverts():
+        token.admin_set_minter(charlie, sender = charlie)
 
 
-def test_rando_cannot_set_nft_addr(thing, charlie):
-    with brownie.reverts():
-        thing.admin_set_npc_addr(charlie, {"from": charlie})
+def test_rando_cannot_set_nft_addr(token, charlie):
+    with ape.reverts():
+        token.admin_set_npc_addr(charlie, sender = charlie)
 
 
-def test_rando_cannot_mint(thing, charlie):
-    with brownie.reverts():
-        thing.mint(charlie, 10**18, {"from": charlie})
+def test_rando_cannot_mint(token, charlie):
+    with ape.reverts():
+        token.mint(charlie, 10**18, sender = charlie)
 
 
-def test_cannot_burn(thing, alice, deployer):
-    thing.mint(alice, 10**18, {"from": deployer})
-    assert thing.balanceOf(alice) == 10**18
-    with brownie.reverts():
-        thing.transfer(ZERO_ADDRESS, 10**18, {"from": alice})
-    assert thing.balanceOf(alice) == 10**18
+def test_cannot_burn(token, alice, deployer):
+    token.mint(alice, 10**18, sender = deployer)
+    assert token.balanceOf(alice) == 10**18
+    with ape.reverts():
+        token.transfer(misc.ZERO_ADDRESS, 10**18, sender = alice)
+    assert token.balanceOf(alice) == 10**18
 
 
-def test_mint_fires_event(thing, alice, deployer):
-    tx = thing.mint(alice, 10**18, {'from': deployer})
+def test_mint_fires_event(token, alice, deployer):
+    tx = token.mint(alice, 10**18, {'from': deployer})
     event = tx.events['Transfer']
-    assert event['sender'] == ZERO_ADDRESS
+    assert event['sender'] == misc.ZERO_ADDRESS
     assert event['receiver'] == alice
     assert event['value'] == 10 ** 18
 
