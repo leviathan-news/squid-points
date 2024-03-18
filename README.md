@@ -1,6 +1,6 @@
 # Current Thing
 
-![NPC](NPC.png)
+![LeviathanNewsSquare](https://github.com/leviathan-news/squid-points/assets/13426766/29fa5ec2-73bb-4710-81ba-f77ff0a6103a)
 
 # vyper-token-mix
 
