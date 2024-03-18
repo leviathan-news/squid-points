@@ -2,79 +2,81 @@
 import ape
 
 
-def test_sender_balance_decreases(accounts, token):
-    sender_balance = token.balanceOf(accounts[0])
+def test_sender_balance_decreases(alice, bob, token):
+    sender_balance = token.balanceOf(alice)
     amount = sender_balance // 4
 
-    token.transfer(accounts[1], amount, sender = accounts[0])
+    token.transfer(bob, amount, sender = alice)
 
-    assert token.balanceOf(accounts[0]) == sender_balance - amount
-
-
-def test_receiver_balance_increases(accounts, token):
-    receiver_balance = token.balanceOf(accounts[1])
-    amount = token.balanceOf(accounts[0]) // 4
-
-    token.transfer(accounts[1], amount, sender = accounts[0])
-
-    assert token.balanceOf(accounts[1]) == receiver_balance + amount
+    assert token.balanceOf(alice) == sender_balance - amount
 
 
-def test_total_supply_not_affected(accounts, token):
+def test_receiver_balance_increases(alice, bob, token):
+    receiver_balance = token.balanceOf(bob)
+    amount = token.balanceOf(alice) // 4
+
+    token.transfer(bob, amount, sender = alice)
+
+    assert token.balanceOf(bob) == receiver_balance + amount
+
+
+def test_total_supply_not_affected(alice, bob, token):
     total_supply = token.totalSupply()
-    amount = token.balanceOf(accounts[0])
+    amount = token.balanceOf(alice)
 
-    token.transfer(accounts[1], amount, sender = accounts[0])
+    token.transfer(bob, amount, sender = alice)
 
     assert token.totalSupply() == total_supply
 
 
-def test_returns_true(accounts, token):
-    amount = token.balanceOf(accounts[0])
-    tx = token.transfer(accounts[1], amount, sender = accounts[0])
+def test_returns_true(alice, bob, token):
+    amount = token.balanceOf(alice)
+    tx = token.transfer(bob, amount, sender = alice)
 
     assert tx.return_value is True
 
 
-def test_transfer_full_balance(accounts, token):
-    amount = token.balanceOf(accounts[0])
-    receiver_balance = token.balanceOf(accounts[1])
+def test_transfer_full_balance(alice, bob, token):
+    amount = token.balanceOf(alice)
+    receiver_balance = token.balanceOf(bob)
 
-    token.transfer(accounts[1], amount, sender = accounts[0])
+    token.transfer(bob, amount, sender = alice)
 
-    assert token.balanceOf(accounts[0]) == 0
-    assert token.balanceOf(accounts[1]) == receiver_balance + amount
-
-
-def test_transfer_zero_tokens(accounts, token):
-    sender_balance = token.balanceOf(accounts[0])
-    receiver_balance = token.balanceOf(accounts[1])
-
-    token.transfer(accounts[1], 0, sender = accounts[0])
-
-    assert token.balanceOf(accounts[0]) == sender_balance
-    assert token.balanceOf(accounts[1]) == receiver_balance
+    assert token.balanceOf(alice) == 0
+    assert token.balanceOf(bob) == receiver_balance + amount
 
 
-def test_transfer_to_self(accounts, token):
-    sender_balance = token.balanceOf(accounts[0])
+def test_transfer_zero_tokens(alice, bob, token):
+    sender_balance = token.balanceOf(alice)
+    receiver_balance = token.balanceOf(bob)
+
+    token.transfer(bob, 0, sender = alice)
+
+    assert token.balanceOf(alice) == sender_balance
+    assert token.balanceOf(bob) == receiver_balance
+
+
+def test_transfer_to_self(alice, bob, token):
+    sender_balance = token.balanceOf(alice)
     amount = sender_balance // 4
 
-    token.transfer(accounts[0], amount, sender = accounts[0])
+    token.transfer(alice, amount, sender = alice)
 
-    assert token.balanceOf(accounts[0]) == sender_balance
+    assert token.balanceOf(alice) == sender_balance
 
 
-def test_insufficient_balance(accounts, token):
-    balance = token.balanceOf(accounts[0])
+def test_insufficient_balance(alice, bob, token):
+    balance = token.balanceOf(alice)
 
     with ape.reverts():
-        token.transfer(accounts[1], balance + 1, sender = accounts[0])
+        token.transfer(bob, balance + 1, sender = alice)
 
 
-def test_transfer_event_fires(accounts, token):
-    amount = token.balanceOf(accounts[0])
-    tx = token.transfer(accounts[1], amount, sender = accounts[0])
+def test_transfer_event_fires(alice, bob, token):
+    amount = token.balanceOf(alice)
+    tx = token.transfer(bob, amount, sender = alice)
 
     assert len(tx.events) == 1
-    assert tx.events["Transfer"].values() == [accounts[0], accounts[1], amount]
+    assert tx.events[0].sender == alice
+    assert tx.events[0].receiver == bob
+    assert tx.events[0].value == amount

@@ -1,40 +1,40 @@
 # @version 0.3.7
 
 """
-@title Current Thing ERC-20 Token ($THING)
-@author npcers.eth
+@title Leviathan Points ($SQUID)
+@author Leviathan News
 @notice Based on the ERC-20 token standard as defined at
         https://eips.ethereum.org/EIPS/eip-20
-
-         :=+******++=-:                 
-      -+*+======------=+++=:            
-     #+========------------=++=.        
-    #+=======------------------++:      
-   *+=======--------------------:++     
-  =*=======------------------------*.   
- .%========-------------------------*.  
- %+=======-------------------------:-#  
-+*========--------------------------:#  
-%=========--------------------------:#. 
-%=========--------------------+**=--:++ 
-#+========-----=*#%#=--------#@@@@+-::*:
-:%========-----+@@@@%=-------=@@@@#-::+=
- -#======-------+@@@%=----=*=--+**=-::#:
-  :#+====---------==----===@%=------::% 
-    #+===-------------======@%=------:=+
-    .%===------------=======+@%------::#
-     #+==-----------=========+@%-------+
-     %===------------*%%%%%%%%@@#-----#.
-     %====-----------============----#: 
-     *+==#+----------+##%%%%%%%%@--=*.  
-     -#==+%=---------=+=========--*=    
-      +===+%+--------------------*-     
-       =====*#=------------------#      
-       .======*#*=------------=*+.      
-         -======+*#*+--------*+         
-          .-========+***+++=-.          
-             .-=======:           
-
+                                                                    
+                                ####++++++++                         
+                       #+++++++++####+++##++                         
+                     #########+++-++##++-..                          
+                      ....++++#++++++#+++-....                       
+                 ++++++----+++++++++++++++++-..-++##                 
+                  ...-+++++++++++++++++++++++++++#####               
+              +++-....+#+++++++++++++++++++++++++######              
+          +++++++++++++++++++++++++++++++-+++++++++++++++++          
+        ++#########++++++++----+++--++----+++++++########++++        
+      ###############+++++-.-------------..+++++#############++      
+     ##########++++###++++.  .---------.  .+++++++++-+++  ######     
+     ########  ....--+++++.   .-------..  .++++++++++#+++#+ ####     
+    ########  ..--+++++++++....-------....+++++++####+++++## ###     
+     ######   +++++++++++++++-+-----+-++-+-++++++#######++++         
+     #####   +#######+#+++++++++-+-++-++++++++++++---+#####++        
+      ####  ++####+----+++++++++++++++++++++++++++++-  #####++       
+       ###  +###+.....-+++++++++++++++++++++++++###+++  +###++       
+            ++##+....-+++++#+++++++++++++#++++----+##++  +####+      
+            +###  ..-+#####++++++++++++++##+++-....##++   ####       
+            ++##   ++####+-++++##+##+++++++###++-+  +++  #####       
+             +##+  +####-..+++####++###++-.-+###+++ ++   ###         
+               +#  +####-..++#####--+###++--  +#++++                 
+                   ++###   +++####+..-+###+++   ++++                 
+                    ++#++   ++++###+     +#+++  +++                  
+                     ++++     +++++++     +++++                      
+                       +++      +++++++    +++                       
+                                     ++    +                         
+                                                                     
+                                                                     
 """
 
 
@@ -63,24 +63,17 @@ balances: HashMap[address, uint256]
 allowances: HashMap[address, HashMap[address, uint256]]
 
 # Contract Specific Addresses
-npc: public(address)
 owner: public(address)
 minter: public(address)
-
-# Epoch
-current_epoch: public(uint256)
-current_thing_archive: public(HashMap[uint256, String[256]])
 
 
 @external
 def __init__():
-    self.name = "Current Thing"
-    self.symbol = "THING"
+    self.name = "Leviathan Points"
+    self.symbol = "SQUID"
     self.decimals = 18
     self.owner = msg.sender
     self.minter = msg.sender
-    self.current_epoch = 0
-    self.current_thing_archive[0] = "Genesis Thing"
 
 
 @view
@@ -161,28 +154,6 @@ def transferFrom(_from: address, _to: address, _value: uint256) -> bool:
     return True
 
 
-@external
-@view
-def current_thing() -> String[256]:
-    """
-    @notice The Current Thing
-    @return What NPCs support
-    """
-    return self.current_thing_archive[self.current_epoch]
-
-
-@external
-def new_current_thing(current_thing: String[256]):
-    """
-    @notice Store a new current thing
-    @dev Only admin or authorized minter, updates a new epoch
-    @param current_thing The new current thing
-    """
-    assert msg.sender in [self.owner, self.minter]
-    self.current_epoch += 1
-    self.current_thing_archive[self.current_epoch] = current_thing
-
-
 @internal
 def _mint(addr: address, amount: uint256):
     self.balances[addr] += amount
@@ -223,12 +194,3 @@ def admin_set_minter(new_minter: address):
     self.minter = new_minter
 
 
-@external
-def admin_set_npc_addr(addr: address):
-    """
-    @notice Update Address for NPC NFT
-    @param addr New address
-    """
-
-    assert msg.sender == self.owner
-    self.npc = addr

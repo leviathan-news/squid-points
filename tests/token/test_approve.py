@@ -46,4 +46,6 @@ def test_approval_event_fires(token, alice, bob):
     tx = token.approve(bob, 10**19, sender = alice)
 
     assert len(tx.events) == 1
-    assert tx.events["Approval"].values() == [alice, bob, 10**19]
+    assert tx.events[0].owner == alice
+    assert tx.events[0].spender == bob
+    assert tx.events[0].value == 10 ** 19

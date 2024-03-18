@@ -1,19 +1,17 @@
 import ape
 from ape.utils import misc
-
+from ape import accounts
 
 def test_admin_set_minter_works(token, alice):
-    token.admin_set_minter(alice, sender = token.owner())
+    with accounts.use_sender(token.owner()):
+        token.admin_set_minter(alice)
     assert token.minter() == alice
 
 
 def test_admin_set_owner_works(token, alice):
-    token.admin_set_owner(alice, sender = token.owner())
+    with accounts.use_sender(token.owner()):
+        token.admin_set_owner(alice)
     assert token.owner() == alice
-
-
-def test_admin_can_set_nft_addr(token):
-    token.admin_set_npc_addr(misc.ZERO_ADDRESS, sender = token.owner())
 
 
 def test_owner_can_mint(token, deployer, alice, bob):
@@ -47,11 +45,6 @@ def test_rando_cannot_admin_set_minter(token, charlie):
         token.admin_set_minter(charlie, sender = charlie)
 
 
-def test_rando_cannot_set_nft_addr(token, charlie):
-    with ape.reverts():
-        token.admin_set_npc_addr(charlie, sender = charlie)
-
-
 def test_rando_cannot_mint(token, charlie):
     with ape.reverts():
         token.mint(charlie, 10**18, sender = charlie)
@@ -66,9 +59,9 @@ def test_cannot_burn(token, alice, deployer):
 
 
 def test_mint_fires_event(token, alice, deployer):
-    tx = token.mint(alice, 10**18, {'from': deployer})
-    event = tx.events['Transfer']
-    assert event['sender'] == misc.ZERO_ADDRESS
-    assert event['receiver'] == alice
-    assert event['value'] == 10 ** 18
+    tx = token.mint(alice, 10**18, sender = deployer)
+    event = tx.events
+    assert event[0].sender == misc.ZERO_ADDRESS
+    assert event[0].receiver == alice
+    assert event[0].value == 10 ** 18
 
