@@ -61,7 +61,7 @@ def test_cannot_burn(token, alice, deployer):
 def test_mint_fires_event(token, alice, deployer):
     tx = token.mint(alice, 10**18, sender = deployer)
     event = tx.events
-    assert event[0].sender == misc.ZERO_ADDRESS
-    assert event[0].receiver == alice
-    assert event[0].value == 10 ** 18
+    assert event[0]._from == misc.ZERO_ADDRESS
+    assert event[0]._to == alice
+    assert event[0]._value == 10 ** 18
 

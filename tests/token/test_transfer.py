@@ -77,6 +77,6 @@ def test_transfer_event_fires(alice, bob, token):
     tx = token.transfer(bob, amount, sender = alice)
 
     assert len(tx.events) == 1
-    assert tx.events[0].sender == alice
-    assert tx.events[0].receiver == bob
-    assert tx.events[0].value == amount
+    assert tx.events[0]._from == alice
+    assert tx.events[0]._to == bob
+    assert tx.events[0]._value == amount

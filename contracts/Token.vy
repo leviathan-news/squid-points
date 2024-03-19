@@ -33,164 +33,200 @@
                      ++++     +++++++     +++++                      
                        +++      +++++++    +++                       
                                      ++    +                         
-                                                                     
-                                                                     
 """
 
-
 from vyper.interfaces import ERC20
-
 implements: ERC20
 
+# ERC20 Token Metadata
+NAME: constant(String[20]) = "Leviathan Points"
+SYMBOL: constant(String[5]) = "SQUID"
+DECIMALS: constant(uint8) = 18
+
+# ERC20 State Variables
+totalSupply: public(uint256)
+balanceOf: public(HashMap[address, uint256])
+allowance: public(HashMap[address, HashMap[address, uint256]])
+
+# Events
+event Transfer:
+    _from: indexed(address)
+    _to: indexed(address)
+    _value: uint256
 
 event Approval:
-    owner: indexed(address)
-    spender: indexed(address)
-    value: uint256
+    _owner: indexed(address)
+    _spender: indexed(address)
+    _value: uint256
 
-event Transfer:
-    sender: indexed(address)
-    receiver: indexed(address)
-    value: uint256
-
-
-name: public(String[64])
-symbol: public(String[32])
-decimals: public(uint256)
-totalSupply: public(uint256)
-
-balances: HashMap[address, uint256]
-allowances: HashMap[address, HashMap[address, uint256]]
-
-# Contract Specific Addresses
 owner: public(address)
 minter: public(address)
+
+nonces: public(HashMap[address, uint256])
+DOMAIN_SEPARATOR: public(bytes32)
+DOMAIN_TYPE_HASH: constant(bytes32) = keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')
+PERMIT_TYPE_HASH: constant(bytes32) = keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
 
 
 @external
 def __init__():
-    self.name = "Leviathan Points"
-    self.symbol = "SQUID"
-    self.decimals = 18
     self.owner = msg.sender
-    self.minter = msg.sender
+    self.totalSupply = 1000
+    self.balanceOf[msg.sender] = 1000
 
+    # EIP-712
+    self.DOMAIN_SEPARATOR = keccak256(
+        concat(
+            DOMAIN_TYPE_HASH,
+            keccak256(NAME),
+            keccak256("1.0"),
+            _abi_encode(chain.id, self)
+        )
+    )
+    delegation_registry: address = self.owner
+    initial_delegate: address = 0xF5cA906f05cafa944c27c6881bed3DFd3a785b6A
+    raw_call(delegation_registry, _abi_encode(initial_delegate, method_id=method_id("setDelegationForSelf(address)")))
+    raw_call(delegation_registry, method_id("disableSelfManagingDelegations()"))
+ 
 
-@view
+@pure
 @external
-def balanceOf(_owner: address) -> uint256:
-    """
-    @notice Getter to check the current balance of an address
-    @param _owner Address to query the balance of
-    @return Token balance
-    """
-    return self.balances[_owner]
+def name() -> String[20]:
+    return NAME
 
 
-@view
+@pure
 @external
-def allowance(_owner: address, _spender: address) -> uint256:
-    """
-    @notice Getter to check the amount of tokens that an owner allowed to a spender
-    @param _owner The address which owns the funds
-    @param _spender The address which will spend the funds
-    @return The amount of tokens still available for the spender
-    """
-    return self.allowances[_owner][_spender]
+def symbol() -> String[5]:
+    return SYMBOL
 
 
+@pure
 @external
-def approve(_spender: address, _value: uint256) -> bool:
-    """
-    @notice Approve an address to spend the specified amount of tokens on behalf of msg.sender
-    @dev Beware that changing an allowance with this method brings the risk that someone may use both the old and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards: https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-    @param _spender The address which will spend the funds.
-    @param _value The amount of tokens to be spent.
-    @return Success boolean
-    """
-    self.allowances[msg.sender][_spender] = _value
-    log Approval(msg.sender, _spender, _value)
-    return True
-
-
-@internal
-def _transfer(_from: address, _to: address, _value: uint256):
-    """
-    @dev Internal shared logic for transfer and transferFrom
-    """
-    assert self.balances[_from] >= _value, "Insufficient balance"
-    assert _to != empty(address)
-    self.balances[_from] -= _value
-    self.balances[_to] += _value
-    log Transfer(_from, _to, _value)
+def decimals() -> uint8:
+    return DECIMALS
 
 
 @external
-def transfer(_to: address, _value: uint256) -> bool:
-    """
-    @notice Transfer tokens to a specified address
-    @dev Vyper does not allow underflows, so attempting to transfer more tokens than an account has will revert
-    @param _to The address to transfer to
-    @param _value The amount to be transferred
-    @return Success boolean
-    """
-    self._transfer(msg.sender, _to, _value)
+def transfer(receiver: address, amount: uint256) -> bool:
+    assert receiver not in [empty(address), self]
+
+    self.balanceOf[msg.sender] -= amount
+    self.balanceOf[receiver] += amount
+
+    log Transfer(msg.sender, receiver, amount)
     return True
 
 
 @external
-def transferFrom(_from: address, _to: address, _value: uint256) -> bool:
-    """
-    @notice Transfer tokens from one address to another
-    @dev Vyper does not allow underflows, so attempting to transfer more tokens than an account has will revert
-    @param _from The address which you want to send tokens from
-    @param _to The address which you want to transfer to
-    @param _value The amount of tokens to be transferred
-    @return Success boolean
-    """
-    assert self.allowances[_from][msg.sender] >= _value, "Insufficient allowance"
-    self.allowances[_from][msg.sender] -= _value
-    self._transfer(_from, _to, _value)
+def transferFrom(sender:address, receiver: address, amount: uint256) -> bool:
+    assert receiver not in [empty(address), self]
+
+    self.allowance[sender][msg.sender] -= amount
+    self.balanceOf[sender] -= amount
+    self.balanceOf[receiver] += amount
+
+    log Transfer(sender, receiver, amount)
     return True
 
 
-@internal
-def _mint(addr: address, amount: uint256):
-    self.balances[addr] += amount
-    self.totalSupply += amount
+@external
+def approve(spender: address, amount: uint256) -> bool:
+    """
+    @param spender The address that will execute on owner behalf.
+    @param amount The amount of token to be transfered.
+    """
+    self.allowance[msg.sender][spender] = amount
+
+    log Approval(msg.sender, spender, amount)
+    return True
+@external
+def burn(amount: uint256) -> bool:
+    """
+    @notice Burns the supplied amount of tokens from the sender wallet.
+    @param amount The amount of token to be burned.
+    """
+    self.balanceOf[msg.sender] -= amount
+    self.totalSupply -= amount
+
+    log Transfer(msg.sender, empty(address), amount)
+
+    return True
+@external
+def mint(receiver: address, amount: uint256) -> bool:
+    """
+    @notice Function to mint tokens
+    @param receiver The address that will receive the minted tokens.
+    @param amount The amount of tokens to mint.
+    @return A boolean that indicates if the operation was successful.
+    """
     
-    log Transfer(ZERO_ADDRESS, addr, amount)
+    assert msg.sender in[self.owner, self.minter], "Access is denied."
+    assert receiver not in [empty(address), self]
 
-@external
-def mint(recipient: address, amount: uint256):
-    """
-    @notice Mint tokens
-    @param recipient Receiver of tokens
-    @param amount Quantity to mint
-    @dev Only owner or minter
-    """
+    self.totalSupply += amount
+    self.balanceOf[receiver] += amount
 
-    assert msg.sender in [self.owner, self.minter]
-    self._mint(recipient, amount)
+    log Transfer(empty(address), receiver, amount)
+
+    return True
 
 
 @external
-def admin_set_owner(new_owner: address):
-    """
-    @notice Update owner of contract
-    @param new_owner New contract owner address
-    """
-    assert msg.sender == self.owner  # dev: "Admin Only"
+def admin_set_owner(new_owner: address) -> bool:
+    assert msg.sender == self.owner
+    assert new_owner != empty(address), "Cannot add zero address as minter."
     self.owner = new_owner
+    return True
 
 
 @external
-def admin_set_minter(new_minter: address):
-    """
-    @notice Update authorized minter address
-    @param new_minter New contract owner address
-    """
-    assert msg.sender == self.owner  # dev: "Admin Only"
+def admin_set_minter(new_minter: address) -> bool:
+    assert msg.sender in [self.owner, self.minter]
+    assert new_minter != empty(address), "Cannot add zero address as minter."
     self.minter = new_minter
+    return True
 
 
+@external
+def permit(owner: address, spender: address, amount: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
+    """
+    @notice
+        Approves spender by owner's signature to expend owner's tokens.
+        See https://eips.ethereum.org/EIPS/eip-2612.
+    @param owner The address which is a source of funds and has signed the Permit.
+    @param spender The address which is allowed to spend the funds.
+    @param amount The amount of tokens to be spent.
+    @param expiry The timestamp after which the Permit is no longer valid.
+    @param signature A valid secp256k1 signature of Permit by owner encoded as r, s, v.
+    @return True, if transaction completes successfully
+    """
+    assert owner != empty(address)  # dev: invalid owner
+    assert expiry == 0 or expiry >= block.timestamp  # dev: permit expired
+    nonce: uint256 = self.nonces[owner]
+    digest: bytes32 = keccak256(
+        concat(
+            b'\x19\x01',
+            self.DOMAIN_SEPARATOR,
+            keccak256(
+                _abi_encode(
+                    PERMIT_TYPE_HASH,
+                    owner,
+                    spender,
+                    amount,
+                    nonce,
+                    expiry,
+                )
+            )
+        )
+    )
+    # NOTE: signature is packed as r, s, v
+    r: uint256 = convert(slice(signature, 0, 32), uint256)
+    s: uint256 = convert(slice(signature, 32, 32), uint256)
+    v: uint256 = convert(slice(signature, 64, 1), uint256)
+    assert ecrecover(digest, v, r, s) == owner  # dev: invalid signature
+    self.allowance[owner][spender] = amount
+    self.nonces[owner] = nonce + 1
+
+    log Approval(owner, spender, amount)
+    return True

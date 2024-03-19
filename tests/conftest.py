@@ -7,12 +7,6 @@ from ape import (
 )
 
 
-@pytest.fixture(scope="function")
-def token(deployer):
-    token = project.Token.deploy(sender= deployer)
-    token.mint(deployer, 10**18, sender= deployer)
-    return token
-
 
 @pytest.fixture(scope="module")
 def root():
@@ -42,6 +36,13 @@ def charlie():
 @pytest.fixture(scope="module")
 def token_metadata():
     return {"name": "Leviathan Points", "symbol": "SQUID"}
+
+@pytest.fixture(scope="function")
+def token(deployer):
+    token = project.Token.deploy(sender= deployer)
+    token.mint(deployer, 10**18, sender= deployer)
+    return token
+
 
 
 

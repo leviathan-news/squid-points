@@ -166,6 +166,6 @@ def test_transfer_event_fires(deployer, bob, charlie, token):
     tx = token.transferFrom(deployer, charlie, amount, sender = bob)
 
     assert len(tx.events) == 1
-    assert tx.events[0].sender == deployer
-    assert tx.events[0].receiver == charlie
-    assert tx.events[0].value == amount
+    assert tx.events[0]._from == deployer
+    assert tx.events[0]._to == charlie
+    assert tx.events[0]._value == amount
