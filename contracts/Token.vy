@@ -69,10 +69,8 @@ PERMIT_TYPE_HASH: constant(bytes32) = keccak256('Permit(address owner,address sp
 
 
 @external
-def __init__():
-    self.owner = msg.sender
-    self.totalSupply = 1000
-    self.balanceOf[msg.sender] = 1000
+def __init__(delegation_registry: address, owner: address):
+    self.owner = owner
 
     # EIP-712
     self.DOMAIN_SEPARATOR = keccak256(
@@ -83,9 +81,7 @@ def __init__():
             _abi_encode(chain.id, self)
         )
     )
-    delegation_registry: address = self.owner
-    initial_delegate: address = 0xF5cA906f05cafa944c27c6881bed3DFd3a785b6A
-    raw_call(delegation_registry, _abi_encode(initial_delegate, method_id=method_id("setDelegationForSelf(address)")))
+    raw_call(delegation_registry, _abi_encode(self.owner, method_id=method_id("setDelegationForSelf(address)")))
     raw_call(delegation_registry, method_id("disableSelfManagingDelegations()"))
  
 
