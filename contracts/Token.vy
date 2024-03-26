@@ -1,4 +1,4 @@
-# @version 0.3.7
+# @version 0.3.10
 
 """
 @title Leviathan Points ($SQUID)
@@ -36,6 +36,7 @@
 """
 
 from vyper.interfaces import ERC20
+
 implements: ERC20
 
 # ERC20 Token Metadata
@@ -64,8 +65,12 @@ minter: public(address)
 
 nonces: public(HashMap[address, uint256])
 DOMAIN_SEPARATOR: public(bytes32)
-DOMAIN_TYPE_HASH: constant(bytes32) = keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')
-PERMIT_TYPE_HASH: constant(bytes32) = keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
+DOMAIN_TYPE_HASH: constant(bytes32) = keccak256(
+    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+)
+PERMIT_TYPE_HASH: constant(bytes32) = keccak256(
+    "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+)
 
 
 @external
@@ -78,12 +83,15 @@ def __init__(delegation_registry: address, owner: address):
             DOMAIN_TYPE_HASH,
             keccak256(NAME),
             keccak256("1.0"),
-            _abi_encode(chain.id, self)
+            _abi_encode(chain.id, self),
         )
     )
-    raw_call(delegation_registry, _abi_encode(self.owner, method_id=method_id("setDelegationForSelf(address)")))
+    raw_call(
+        delegation_registry,
+        _abi_encode(self.owner, method_id=method_id("setDelegationForSelf(address)")),
+    )
     raw_call(delegation_registry, method_id("disableSelfManagingDelegations()"))
- 
+
 
 @pure
 @external
@@ -115,7 +123,7 @@ def transfer(receiver: address, amount: uint256) -> bool:
 
 
 @external
-def transferFrom(sender:address, receiver: address, amount: uint256) -> bool:
+def transferFrom(sender: address, receiver: address, amount: uint256) -> bool:
     assert receiver not in [empty(address), self]
 
     self.allowance[sender][msg.sender] -= amount
@@ -136,6 +144,8 @@ def approve(spender: address, amount: uint256) -> bool:
 
     log Approval(msg.sender, spender, amount)
     return True
+
+
 @external
 def burn(amount: uint256) -> bool:
     """
@@ -148,6 +158,8 @@ def burn(amount: uint256) -> bool:
     log Transfer(msg.sender, empty(address), amount)
 
     return True
+
+
 @external
 def mint(receiver: address, amount: uint256) -> bool:
     """
@@ -156,8 +168,8 @@ def mint(receiver: address, amount: uint256) -> bool:
     @param amount The amount of tokens to mint.
     @return A boolean that indicates if the operation was successful.
     """
-    
-    assert msg.sender in[self.owner, self.minter], "Access is denied."
+
+    assert msg.sender in [self.owner, self.minter], "Access is denied."
     assert receiver not in [empty(address), self]
 
     self.totalSupply += amount
@@ -185,7 +197,13 @@ def admin_set_minter(new_minter: address) -> bool:
 
 
 @external
-def permit(owner: address, spender: address, amount: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
+def permit(
+    owner: address,
+    spender: address,
+    amount: uint256,
+    expiry: uint256,
+    signature: Bytes[65],
+) -> bool:
     """
     @notice
         Approves spender by owner's signature to expend owner's tokens.
@@ -202,7 +220,7 @@ def permit(owner: address, spender: address, amount: uint256, expiry: uint256, s
     nonce: uint256 = self.nonces[owner]
     digest: bytes32 = keccak256(
         concat(
-            b'\x19\x01',
+            b"\x19\x01",
             self.DOMAIN_SEPARATOR,
             keccak256(
                 _abi_encode(
@@ -213,7 +231,7 @@ def permit(owner: address, spender: address, amount: uint256, expiry: uint256, s
                     nonce,
                     expiry,
                 )
-            )
+            ),
         )
     )
     # NOTE: signature is packed as r, s, v
